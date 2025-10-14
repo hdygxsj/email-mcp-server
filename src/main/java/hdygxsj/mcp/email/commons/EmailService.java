@@ -2,17 +2,22 @@ package hdygxsj.mcp.email.commons;
 
 import hdygxsj.mcp.email.config.EmailConfig;
 import hdygxsj.mcp.email.entity.EmailContent;
+import hdygxsj.mcp.email.entity.EmailRequest;
 import jakarta.mail.*;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeBodyPart;
+import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeMultipart;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
 @Service
-public class EmailReaderService {
+public class EmailService {
 
     @Autowired
     private EmailConfig emailConfig;
@@ -97,5 +102,65 @@ public class EmailReaderService {
             }
         }
         return result.toString();
+    }
+
+    public void sendEmail(EmailRequest request) throws Exception {
+        if (request == null) {
+            throw new IllegalArgumentException("EmailRequest cannot be null");
+        }
+
+        Properties props = new Properties();
+        props.put("mail.smtp.host", request.getHost());
+        props.put("mail.smtp.port", String.valueOf(request.getPort()));
+        props.put("mail.smtp.auth", "true");
+
+        if (request.isUseSsl()) {
+            props.put("mail.smtp.ssl.enable", "true");
+            props.put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
+            props.put("mail.smtp.socketFactory.fallback", "false");
+        } else {
+            props.put("mail.smtp.starttls.enable", "true");
+        }
+
+        Session session = Session.getInstance(props, new Authenticator() {
+            @Override
+            protected PasswordAuthentication getPasswordAuthentication() {
+                return new PasswordAuthentication(request.getUsername(), request.getPassword());
+            }
+        });
+
+        MimeMessage message = new MimeMessage(session);
+
+        message.setFrom(new InternetAddress(request.getFrom()));
+        message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(request.getTo()));
+
+        if (request.getCc() != null && !request.getCc().trim().isEmpty()) {
+            message.setRecipients(Message.RecipientType.CC, InternetAddress.parse(request.getCc()));
+        }
+
+        message.setSubject(request.getSubject(), "UTF-8");
+
+        Multipart multipart = new MimeMultipart();
+
+        // 邮件正文
+        MimeBodyPart textPart = new MimeBodyPart();
+        textPart.setContent(request.getContent(), "text/html; charset=UTF-8");
+        multipart.addBodyPart(textPart);
+
+        // 附件
+        if (request.getAttachments() != null && !request.getAttachments().isEmpty()) {
+            for (String filePath : request.getAttachments()) {
+                File file = new File(filePath);
+                if (!file.exists()) {
+                    throw new MessagingException("Attachment file not found: " + filePath);
+                }
+                MimeBodyPart attachmentPart = new MimeBodyPart();
+                attachmentPart.attachFile(file);
+                multipart.addBodyPart(attachmentPart);
+            }
+        }
+
+        message.setContent(multipart);
+        Transport.send(message);
     }
 }

@@ -1,6 +1,6 @@
 package hdygxsj.mcp.email.tools;
 
-import hdygxsj.mcp.email.commons.EmailReaderService;
+import hdygxsj.mcp.email.commons.EmailService;
 import hdygxsj.mcp.email.entity.EmailContent;
 import jakarta.mail.MessagingException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,7 +16,7 @@ import java.util.List;
 public class ReadEmail {
 
     @Autowired
-    private EmailReaderService readerService;
+    private EmailService readerService;
     @GetMapping("/read")
     public List<EmailContent> read(@RequestParam("host") String host,
                                    @RequestParam("num") int num,
