@@ -1,0 +1,22 @@
+server:
+  port: 9454
+
+spring:
+  ai:
+    mcp:
+      server:
+        name: Email Mcp Server
+        version: 0.1.0
+        type: ASYNC  # Recommended for reactive applications
+        # 配置 sse 的根路径，默认值为 /sse
+        # 下面的最终路径为 ip:port/sse/mcp
+        sse-endpoint: /sse
+        sse-message-endpoint: /mcp
+        capabilities:
+          tool: true
+          resource: true
+          prompt: true
+          completion: true
+
+email:
+  protocol: imaps
